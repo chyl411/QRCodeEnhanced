@@ -104,6 +104,49 @@ public final class PlanarYUVLuminanceSource extends LuminanceSource {
     return matrix;
   }
 
+//返回带颜色值的yuv格式数据
+  public byte[] getMatrixWithColor() {
+    int width = getWidth();
+    int height = getHeight();
+
+    // If the caller asks for the entire underlying image, save the copy and give them the
+    // original data. The docs specifically warn that result.length must be ignored.
+    if (width == dataWidth && height == dataHeight) {
+      return yuvData;
+    }
+
+    int area = width * height + width * height / 2;
+    byte[] matrix = new byte[area];
+    int inputOffset = top * dataWidth + left;
+
+    // If the width matches the full width of the underlying data, perform a single copy.
+    if (width == dataWidth) {
+      System.arraycopy(yuvData, inputOffset, width * height, 0, area);
+      return matrix;
+    }
+
+    // Otherwise copy one cropped row at a time.
+    for (int y = 0; y < height; y++) {
+      int outputOffset = y * width;
+      System.arraycopy(yuvData, inputOffset, matrix, outputOffset, width);
+      inputOffset += dataWidth;
+    }
+
+    int newtop = (top % 2 == 0) ? (top / 2) : (top / 2 - 1);
+    int newleft = (left % 2 == 0) ? (left) : (left - 1);
+    inputOffset = dataHeight * dataWidth + newtop * dataWidth  + newleft;
+    // Otherwise copy one cropped row at a time.
+    for (int y = 0; y < height/2; y++) {
+      int outputOffset = height * width + y * width;
+
+      System.arraycopy(yuvData, inputOffset, matrix, outputOffset, width);
+
+      inputOffset += dataWidth;
+    }
+
+    return matrix;
+  }
+
   @Override
   public boolean isCropSupported() {
     return true;
